@@ -163,6 +163,25 @@ namespace ph {
             return {vBuffer.str(), fBuffer.str()};
         }
     };
+    class Camera {
+    public:
+        glm::vec3 position;
+        glm::vec3 target;
+        glm::vec3 up{0.0f, 1.0f, 0.0f};
+
+        Camera(const glm::vec3 &position, const glm::vec3 &target) : position(position) , target(target) {}
+
+        glm::mat4 viewMatrix() const {
+            const glm::vec3 viewDirection = glm::normalize(position - target);
+            // To obtain a vector pointing in the +x direction, we use the Gram-Schmidt procedure.
+            // In particular, note that -z camera = -z world, so +x = cross(+y, +z)), where +z is
+            // the camera direction.
+            const glm::vec3 right = glm::normalize(glm::cross(up, viewDirection));
+            // glm::lookAt computes the view matrix for a camera, given its (1) position,
+            // (2) target, (3) up vector.
+            return glm::lookAt(position, target, right);
+        };
+    };
 }
 
 int main() {
@@ -204,15 +223,15 @@ int main() {
     // send vertex data to GPU
     constexpr float vertices[] = {
         // positions            // colors           // texCoords
-         0.5f,   0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 0 top    right front
-         0.5f,  -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 1 bottom right front
-        -0.5f,  -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 2 bottom left  front
-        -0.5f,   0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 3 top    left  front
-         0.5f,   0.5f,  -0.5f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 4 top    right back
-         0.5f,  -0.5f,  -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 5 bottom right back
-        -0.5f,  -0.5f,  -0.5f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 6 bottom left  back
-        -0.5f,   0.5f,  -0.5f,  1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 7 top    left  back
-    };
+        0.5f,   0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 0 top      right   front
+        0.5f,  -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 1 bottom   right   front
+       -0.5f,  -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 2 bottom   left    front
+       -0.5f,   0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 3 top      left    front
+        0.5f,   0.5f,  -0.5f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 4 top      right   back
+        0.5f,  -0.5f,  -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 5 bottom   right   back
+       -0.5f,  -0.5f,  -0.5f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 6 bottom   left    back
+       -0.5f,   0.5f,  -0.5f,  1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 7 top      left    back
+   };
     constexpr GLuint indices[] = {
         0, 1, 3, 1, 2, 3,   // front
         7, 4, 6, 4, 6, 5,   // back
@@ -253,13 +272,29 @@ int main() {
     shader.setUniform("uTexture", 0);
 
     // TRANSFORMATION STUFF
-    auto view = glm::mat4(1.0f);
-    constexpr float r = 2.0f;
-    constexpr float h = 5.0f;
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -h));
-    // view = glm::rotate(view, -glm::radians(90.0f) + atan(h/r), glm::vec3(0.0f, 1.0f, 0.0f));
-    const auto projection = glm::perspective(glm::radians(45.0f), 800.0f/600.0f, 0.1f, 100.0f);
 
+
+    glm::vec3 positions[] = {
+        {0.0f, 0.02f, 0.02f},
+        {0.0f, 3.0f, 2.0f},
+        {2.4f, -0.6f, 2.8f},
+        {-3.0f, -1.4f, -1.4f},
+        {3.6f, 1.6f, -0.4f},
+        {-1.8f, 2.4f, -2.2f},
+        {0.8f, -3.2f, 1.8f},
+        {-2.6f, -0.2f, 2.8f},
+        {2.2f, -2.0f, -2.4f},
+        {-1.2f, 1.0f, 3.4f}
+    };
+
+    // camera
+    constexpr float h = 10.0f;
+    const glm::vec3 cameraPos{0.0f, 0.0f, h};
+    const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
+    ph::Camera camera{cameraPos, cameraTarget};
+    const auto view = camera.viewMatrix();
+
+    const auto projection = glm::perspective(glm::radians(45.0f), 800.0f/600.0f, 0.1f, 100.0f);
 
     // GAME LOOP
     while (window.isOpen()) {
@@ -267,11 +302,9 @@ int main() {
             window.setShouldClose(true);
 
         // UPDATE
-        const auto theta = static_cast<float>(glfwGetTime());
-        auto model = glm::mat4(1.0f);
-        model = glm::rotate(model, theta, glm::vec3(0.0f, sqrt(2)/2.0f, sqrt(2)/2.0f));
 
         // RENDER
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // The data flow for rendering is as follows:
@@ -283,13 +316,23 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         shader.use();
-        shader.setUniform("uModel", model);
-        shader.setUniform("uView", view);
-        shader.setUniform("uProjection", projection);
 
 
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(GLuint), GL_UNSIGNED_INT, 0);
+        const auto theta = static_cast<float>(glfwGetTime());
+
+        shader.setUniform("uView", view);
+        shader.setUniform("uProjection", projection);
+
+        for (auto v : positions) {
+            auto model = glm::mat4(1.0f);
+            //model = glm::scale(model, {0.5f, 0.5f, 0.5f});
+            model = glm::rotate(model, theta, glm::normalize(v));
+            model = glm::translate(model, v);
+
+            shader.setUniform("uModel", model);
+            glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(GLuint), GL_UNSIGNED_INT, 0);
+        }
 
         // flip buffers and draw
         window.swapBuffers();
