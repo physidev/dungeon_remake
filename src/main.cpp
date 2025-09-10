@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <cmath>
 
 #include <glad/glad.h>
@@ -12,7 +14,7 @@
 constexpr int WIDTH = 600;
 constexpr int HEIGHT = 480;
 
-namespace engine {
+namespace ph {
     class Window {
     public:
         GLFWwindow* window;
@@ -46,6 +48,8 @@ namespace engine {
             std::cout << "OpenGL " << glGetString(GL_VERSION) << "\n";
 
             glViewport(0, 0, width, height);
+            glEnable(GL_DEPTH_TEST);
+
             glfwSetWindowSizeCallback(window, [](GLFWwindow* _, const int w, const int h) {
                 glViewport(0, 0, w, h);
             });
@@ -75,7 +79,6 @@ namespace engine {
             glfwSwapBuffers(window);
         }
     };
-
     class Shader {
     public:
         const GLuint program = glCreateProgram();
@@ -139,47 +142,34 @@ namespace engine {
             glUseProgram(program);
         }
 
-        void setUniform(const std::string& name, const int value) const {
+        void setUniform(const std::string &name, const int value) const {
             glUniform1i(glGetUniformLocation(program, name.c_str()), value);
         }
 
-        void setUniform(const std::string& name, const glm::mat4& value) const {
+        void setUniform(const std::string &name, const glm::mat4 &value) const {
             const GLint location = glGetUniformLocation(program, name.c_str());
             glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
         }
-    };
 
+        static Shader loadFromFile(const std::string &vertexShaderPath, const std::string &fragmentShaderPath) {
+            std::stringstream vBuffer, fBuffer;
+            std::ifstream file;
+            file.open(vertexShaderPath);
+            vBuffer << file.rdbuf();
+            file.close();
+            file.open(fragmentShaderPath);
+            fBuffer << file.rdbuf();
+            file.close();
+            return {vBuffer.str(), fBuffer.str()};
+        }
+    };
 }
 
 int main() {
-    const engine::Window window{600, 480};
+    const ph::Window window{800, 600};
 
-    const char* vertexShaderSource =
-        "#version 330 core\n"
-        "layout (location=0) in vec3 aPos;\n"
-        "layout (location=1) in vec3 aColor;\n"
-        "layout (location=2) in vec2 aTexCoord;\n"
-        "\n"
-        "out vec3 oColor;\n"
-        "out vec2 oTexCoord;\n"
-        "\n"
-        "uniform mat4 transform;\n"
-        "\n"
-        "void main() {\n"
-        "   gl_Position = vec4(aPos, 1.0);\n"
-        "   oColor = aColor;\n"
-        "   oTexCoord = aTexCoord;\n"
-        "}\0";
-    const char* fragmentShaderSource =
-        "#version 330 core\n"
-        "in vec3 oColor;\n"
-        "in vec2 oTexCoord;\n"
-        "out vec4 FragColor;\n"
-        "uniform sampler2D uTexture;\n"
-        "void main() {\n"
-        "   FragColor = texture(uTexture, oTexCoord);\n"
-        "}\0";
-    const engine::Shader shader{vertexShaderSource, fragmentShaderSource};
+    const ph::Shader shader = ph::Shader::loadFromFile(
+        "resources/shaders/shader.vert", "resources/shaders/shader.frag");
 
     // TEXTURE DATA
     GLuint texture;
@@ -214,14 +204,22 @@ int main() {
     // send vertex data to GPU
     constexpr float vertices[] = {
         // positions            // colors           // texCoords
-         0.5f,   0.5f,  0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // top right
-         0.5f,  -0.5f,  0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // bottom right
-        -0.5f,  -0.5f,  0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // bottom left
-        -0.5f,   0.5f,  0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // top left
+         0.5f,   0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 0 top    right front
+         0.5f,  -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 1 bottom right front
+        -0.5f,  -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 2 bottom left  front
+        -0.5f,   0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 3 top    left  front
+         0.5f,   0.5f,  -0.5f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 4 top    right back
+         0.5f,  -0.5f,  -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 5 bottom right back
+        -0.5f,  -0.5f,  -0.5f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 6 bottom left  back
+        -0.5f,   0.5f,  -0.5f,  1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 7 top    left  back
     };
     constexpr GLuint indices[] = {
-        0, 1, 3,
-        1, 2, 3,
+        0, 1, 3, 1, 2, 3,   // front
+        7, 4, 6, 4, 6, 5,   // back
+        0, 3, 4, 3, 4, 7,   // top
+        1, 2, 5, 2, 5, 6,   // bottom
+        3, 2, 7, 2, 7, 6,   // left
+        0, 1, 4, 1, 4, 5,   // right
     };
 
     // Vertex array objects remember the precise binding and unbinding order
@@ -254,15 +252,27 @@ int main() {
     shader.use();
     shader.setUniform("uTexture", 0);
 
+    // TRANSFORMATION STUFF
+    auto view = glm::mat4(1.0f);
+    constexpr float r = 2.0f;
+    constexpr float h = 5.0f;
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -h));
+    // view = glm::rotate(view, -glm::radians(90.0f) + atan(h/r), glm::vec3(0.0f, 1.0f, 0.0f));
+    const auto projection = glm::perspective(glm::radians(45.0f), 800.0f/600.0f, 0.1f, 100.0f);
+
+
     // GAME LOOP
     while (window.isOpen()) {
         if (window.isKeyPressed(GLFW_KEY_ESCAPE))
             window.setShouldClose(true);
 
         // UPDATE
+        const auto theta = static_cast<float>(glfwGetTime());
+        auto model = glm::mat4(1.0f);
+        model = glm::rotate(model, theta, glm::vec3(0.0f, sqrt(2)/2.0f, sqrt(2)/2.0f));
 
         // RENDER
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // The data flow for rendering is as follows:
         //  1)  Bind textures
@@ -273,12 +283,17 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         shader.use();
+        shader.setUniform("uModel", model);
+        shader.setUniform("uView", view);
+        shader.setUniform("uProjection", projection);
+
+
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(GLuint), GL_UNSIGNED_INT, 0);
 
         // flip buffers and draw
         window.swapBuffers();
-        engine::Window::pollEvents();
+        ph::Window::pollEvents();
     }
 
     glDeleteVertexArrays(1, &VAO);
