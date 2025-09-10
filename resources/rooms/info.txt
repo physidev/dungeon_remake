@@ -1,0 +1,29 @@
+I. File Headers
+The files must start with three strings:
+1) "rm"
+2) width of room
+3) height of room
+
+Ex. rm 25 20
+This encodes a 25 x 20 room
+
+II. Content
+The room's content is indicated by the id of each
+tile in the room (A guide is provided). The only
+requirement is that each id be separated by a space.
+
+Ex. 2 2 2 2 2
+    2 4 4 4 2
+    2 2 2 2 2
+
+III. Special Characters
+A dot "." is used to indicate a tile that is not
+replaced. Furthermore, any string containing
+"_" terminates the parser.
+
+IV. Guide
+. = skip
+- = terminate
+0 = dirt
+1 = gray brick
+2 = wall brick
