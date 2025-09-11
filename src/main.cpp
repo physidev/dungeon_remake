@@ -11,9 +11,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-constexpr int WIDTH = 600;
-constexpr int HEIGHT = 480;
-
 namespace ph {
     class Window {
     public:
@@ -167,7 +164,7 @@ namespace ph {
     public:
         glm::vec3 position;
         glm::vec3 target;
-        glm::vec3 up{0.0f, 0.0f, 1.0f};
+        glm::vec3 up{0.0f, 1.0f, 0.0f};
 
         Camera(const glm::vec3 &position, const glm::vec3 &target) : position(position) , target(target) {}
 
@@ -185,7 +182,9 @@ namespace ph {
 }
 
 int main() {
-    const ph::Window window{800, 600};
+    constexpr int WIDTH = 1280;
+    constexpr int HEIGHT = 720;
+    const ph::Window window{WIDTH, HEIGHT};
 
     const ph::Shader shader = ph::Shader::loadFromFile(
         "resources/shaders/shader.vert", "resources/shaders/shader.frag");
@@ -280,7 +279,7 @@ int main() {
     const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
     ph::Camera camera{cameraPos, cameraTarget};
 
-    const auto projection = glm::perspective(glm::radians(45.0f), 800.0f/600.0f, 0.1f, 100.0f);
+    const auto projection = glm::perspective(glm::radians(45.0f), WIDTH/static_cast<float>(HEIGHT), 0.1f, 100.0f);
 
     glm::vec3 positions[] = {
         {0.0f, 3.0f, 2.0f},
