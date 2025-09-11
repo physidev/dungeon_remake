@@ -167,7 +167,7 @@ namespace ph {
     public:
         glm::vec3 position;
         glm::vec3 target;
-        glm::vec3 up{0.0f, 1.0f, 0.0f};
+        glm::vec3 up{0.0f, 0.0f, 1.0f};
 
         Camera(const glm::vec3 &position, const glm::vec3 &target) : position(position) , target(target) {}
 
@@ -196,12 +196,12 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     int width, height, numChannels;
     stbi_set_flip_vertically_on_load(true);
-    stbi_uc* data = stbi_load("resources/textures/tilemap.png", &width, &height, &numChannels, 0);
+    stbi_uc* data = stbi_load("resources/textures/test.jpg", &width, &height, &numChannels, 0);
     if (!data) {
         std::cout << "Error: Failed to load image!" << std::endl;
     }
@@ -217,6 +217,7 @@ int main() {
         GL_UNSIGNED_BYTE,   // image data format
         data
     );
+    glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(data);
 
     // ELEMENT VERTEX DATA
@@ -272,10 +273,16 @@ int main() {
     shader.setUniform("uTexture", 0);
 
     // TRANSFORMATION STUFF
+    // camera
+    constexpr float h = 5.0f;
+    constexpr float r = 5.0f;
+    const glm::vec3 cameraPos{r, 0.0f, h};
+    const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
+    ph::Camera camera{cameraPos, cameraTarget};
 
+    const auto projection = glm::perspective(glm::radians(45.0f), 800.0f/600.0f, 0.1f, 100.0f);
 
     glm::vec3 positions[] = {
-        {0.0f, 0.02f, 0.02f},
         {0.0f, 3.0f, 2.0f},
         {2.4f, -0.6f, 2.8f},
         {-3.0f, -1.4f, -1.4f},
@@ -286,22 +293,30 @@ int main() {
         {2.2f, -2.0f, -2.4f},
         {-1.2f, 1.0f, 3.4f}
     };
-
-    // camera
-    constexpr float h = 10.0f;
-    const glm::vec3 cameraPos{0.0f, 0.0f, h};
-    const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
-    ph::Camera camera{cameraPos, cameraTarget};
-    const auto view = camera.viewMatrix();
-
-    const auto projection = glm::perspective(glm::radians(45.0f), 800.0f/600.0f, 0.1f, 100.0f);
+    const float cameraSpeed = 8.0f;
+    const glm::vec3 xHat{1.0f, 0.0f, 0.0f};
+    const glm::vec3 yHat{0.0f, 1.0f, 0.0f};
 
     // GAME LOOP
+    float deltaTime = 0.0f;
+    float lastFrame = 0.0f;
     while (window.isOpen()) {
         if (window.isKeyPressed(GLFW_KEY_ESCAPE))
             window.setShouldClose(true);
 
         // UPDATE
+        const float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        if (window.isKeyPressed(GLFW_KEY_W))
+            camera.position += cameraSpeed * deltaTime * yHat;
+        else if (window.isKeyPressed(GLFW_KEY_S))
+            camera.position -= cameraSpeed * deltaTime * yHat;
+        else if (window.isKeyPressed(GLFW_KEY_A))
+            camera.position += cameraSpeed * deltaTime * xHat;
+        else if (window.isKeyPressed(GLFW_KEY_D))
+            camera.position -= cameraSpeed * deltaTime * xHat;
 
         // RENDER
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -317,24 +332,25 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, texture);
         shader.use();
 
-
         glBindVertexArray(VAO);
+
         const auto theta = static_cast<float>(glfwGetTime());
+
+        //camera.position = {h*sin(theta), h*cos(theta), 0.0};
+        const auto view = camera.viewMatrix();
 
         shader.setUniform("uView", view);
         shader.setUniform("uProjection", projection);
 
         for (auto v : positions) {
             auto model = glm::mat4(1.0f);
-            //model = glm::scale(model, {0.5f, 0.5f, 0.5f});
-            model = glm::rotate(model, theta, glm::normalize(v));
+            //model = glm::rotate(model, theta, glm::normalize(v));
             model = glm::translate(model, v);
 
             shader.setUniform("uModel", model);
             glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(GLuint), GL_UNSIGNED_INT, 0);
         }
 
-        // flip buffers and draw
         window.swapBuffers();
         ph::Window::pollEvents();
     }
