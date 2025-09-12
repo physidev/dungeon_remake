@@ -130,7 +130,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetShaderInfoLog(vertexShader, 1024, nullptr, infoLog);
-                std::cout << "Error: Vertex shader compilation failed! " << infoLog << std::endl;
+                std::cout << "ph::Error: Failed to compile vertex shader! (" << infoLog << ")\n";
             }
 
             // CREATE FRAGMENT SHADER
@@ -143,7 +143,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetShaderInfoLog(fragmentShader, 1024, nullptr, infoLog);
-                std::cout << "Error: Fragment shader compilation failed! " << infoLog << std::endl;
+                std::cout << "ph::Error: Failed to compile fragment shader! (" << infoLog << ")\n";
             }
 
             // CREATE PROGRAM
@@ -155,7 +155,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetProgramInfoLog(program, 1024, nullptr, infoLog);
-                std::cout << "Error: Shader program link failed! " << infoLog << std::endl;
+                std::cout << "ph::Error: Failed to link shader program! (" << infoLog << ")\n";
             }
             glValidateProgram(program);
             // check validate status
@@ -163,7 +163,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetProgramInfoLog(program, 1024, nullptr, infoLog);
-                std::cout << "Error: Shader program validation failed! " << infoLog << std::endl;
+                std::cout << "ph::Error: Failed to validate shader program! (" << infoLog << ")\n";
             }
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
@@ -228,49 +228,72 @@ int main() {
     constexpr int HEIGHT = 720;
     const ph::Window window{WIDTH, HEIGHT};
 
+
     // GEOMETRY/VERTEX DATA
-    // send vertex data to GPU
+    // Thirty-six vertices forming twelve triangles modeling the
+    // six faces of one cube. The normals are not normalized here.
     constexpr float vertices[] = {
-        // positions            // colors           // texCoords
-        0.5f,   0.5f,  0.5f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 0 top      right   front
-        0.5f,  -0.5f,  0.5f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 1 bottom   right   front
-       -0.5f,  -0.5f,  0.5f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 2 bottom   left    front
-       -0.5f,   0.5f,  0.5f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 3 top      left    front
-        0.5f,   0.5f,  -0.5f,  1.0f, 0.0f, 0.0f,   1.0f, 1.0f,     // 4 top      right   back
-        0.5f,  -0.5f,  -0.5f,  0.0f, 1.0f, 0.0f,   1.0f, 0.0f,     // 5 bottom   right   back
-       -0.5f,  -0.5f,  -0.5f,  0.0f, 0.0f, 1.0f,   0.0f, 0.0f,     // 6 bottom   left    back
-       -0.5f,   0.5f,  -0.5f,  1.0f, 1.0f, 1.0f,   0.0f, 1.0f,     // 7 top      left    back
-   };
-    constexpr GLuint indices[] = {
-        0, 1, 3, 1, 2, 3,   // front
-        7, 4, 6, 4, 6, 5,   // back
-        0, 3, 4, 3, 4, 7,   // top
-        1, 2, 5, 2, 5, 6,   // bottom
-        3, 2, 7, 2, 7, 6,   // left
-        0, 1, 4, 1, 4, 5,   // right
+        // positions            // normals              // texCoords
+        -0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     1.0f,  1.0f,
+         0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     1.0f,  1.0f,
+        -0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  0.0f,
+
+        -0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     1.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     1.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  0.0f,
+
+        -0.5f,  0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,     1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
+
+         0.5f,  0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,    1.0f,  0.0f,  0.0f,     1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,    1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
+         0.5f, -0.5f, -0.5f,    1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
+
+        -0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,     1.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,     1.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  1.0f,
+        -0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  0.0f,
+
+        -0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,     1.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,     1.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  1.0f,
+        -0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  0.0f,
     };
 
     // Vertex array objects remember the precise binding and unbinding order
     // of the vertex buffer and element buffer objects. It then suffices to
     // bind the vertex array object when making render calls, instead of binding
     // each buffer and specifying the attribute pointers.
-    GLuint VAO, VBO, EBO;
+    GLuint VAO, VBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
 
-    glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
+    glBindVertexArray(VAO);
     // position attribute
     // parameters: which attribute, size of vertex attribute, data type, normalize?, stride, offset (void*).
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // color attribute
+    // normal attribute
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     // texture attribute
@@ -278,37 +301,46 @@ int main() {
     glEnableVertexAttribArray(2);
 
 
-    // TEXTURE DATA (brick cube)
-    ph::Texture brick{"resources/textures/test.jpg"};
-    ph::Texture lamp{"resources/textures/lamp.png"};
+    // TEXTURE DATA
+    ph::Texture brickTexture{"resources/textures/test.jpg"};
+    ph::Texture lampTexture{"resources/textures/lamp.png"};
+
 
     // SHADERS
     // brick shader
-    const ph::Shader shader = ph::Shader::loadFromFile(
+    const ph::Shader brickShader = ph::Shader::loadFromFile(
     "resources/shaders/basic.vert", "resources/shaders/basic.frag");
-    shader.use();
-    // set which texture unit to use in the shader
-    shader.setUniform("uTexture", 0);
-    shader.setUniform("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+    brickShader.use();
+    // set which texture unit to use in the shader. You must use the shader program before
+    // setting any uniforms in the shader.
+    brickTexture.bind();
+    brickShader.setUniform("uTexture", 0);
+
+    brickShader.setUniform("uLamp.color", glm::vec3(1.0f, 1.0f, 1.0f));
+    brickShader.setUniform("uLamp.attenuation", glm::vec3(1.0f, 0.045f, 0.0075f));
 
     // lighting object (lamp) shader
     const ph::Shader lampShader = ph::Shader::loadFromFile(
-        "resources/shaders/basic.vert", "resources/shaders/light.frag");
-
-    // glBindTexture(GL_TEXTURE_2D, brickTexture);
-    brick.bind();
+        "resources/shaders/basic.vert", "resources/shaders/lamp.frag");
     lampShader.use();
-    shader.setUniform("uTexture", 0);
+    lampTexture.bind();
+    lampShader.setUniform("uTexture", 0);
+    lampShader.setUniform("uModel", glm::scale(glm::mat4(1.0f), {0.5f, 0.5f, 0.5f}));
+
 
     // TRANSFORMATION DATA
     // camera
-    constexpr float h = 5.0f;
+    constexpr float h = 10.0f;
     constexpr float r = 5.0f;
     const glm::vec3 cameraPos{r, 0.0f, h};
     const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
     ph::Camera camera{cameraPos, cameraTarget};
 
     const auto projection = glm::perspective(glm::radians(45.0f), WIDTH/static_cast<float>(HEIGHT), 0.1f, 100.0f);
+    brickShader.use();
+    brickShader.setUniform("uProjection", projection);
+    lampShader.use();
+    lampShader.setUniform("uProjection", projection);
 
     glm::vec3 positions[] = {
         {0.0f, 3.0f, 2.0f},
@@ -321,9 +353,10 @@ int main() {
         {2.2f, -2.0f, -2.4f},
         {-1.2f, 1.0f, 3.4f}
     };
-    const float cameraSpeed = 8.0f;
+    constexpr float cameraSpeed = 8.0f;
     const glm::vec3 xHat{1.0f, 0.0f, 0.0f};
     const glm::vec3 yHat{0.0f, 1.0f, 0.0f};
+
 
     // GAME LOOP
     float deltaTime = 0.0f;
@@ -333,7 +366,7 @@ int main() {
             window.setShouldClose(true);
 
         // UPDATE
-        const float currentFrame = glfwGetTime();
+        const auto currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
@@ -346,8 +379,12 @@ int main() {
         if (window.isKeyPressed(GLFW_KEY_D))
             camera.position -= cameraSpeed * deltaTime * yHat;
 
+        constexpr float lampR = 10.0f;
+        const auto t = currentFrame;
+        const glm::vec3 lampPosition{lampR * cos(t), lampR * sin(t), 2.0*cos(5.0*t)};
+
         // RENDER
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.0f, 0.02f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // The data flow for rendering is as follows:
@@ -356,27 +393,39 @@ int main() {
         //  3)  Bind the vertex array object (i.e. pass the vertex data
         //      to the GPU)
         //  4)  Draw the object to the screen.
-        brick.bind();
-        shader.use();
 
+        // bricks
+        brickTexture.bind();
+        brickShader.use();
         glBindVertexArray(VAO);
 
         const auto theta = static_cast<float>(glfwGetTime());
-
-        //camera.position = {h*sin(theta), h*cos(theta), 0.0};
         const auto view = camera.viewMatrix();
-
-        shader.setUniform("uView", view);
-        shader.setUniform("uProjection", projection);
+        brickShader.setUniform("uView", view);
+        brickShader.setUniform("uLamp.position", lampPosition);
 
         for (auto v : positions) {
             auto model = glm::mat4(1.0f);
-            //model = glm::rotate(model, theta, glm::normalize(v));
+            // model = glm::rotate(model, theta, glm::normalize(v));
             model = glm::translate(model, v);
 
-            shader.setUniform("uModel", model);
-            glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(GLuint), GL_UNSIGNED_INT, 0);
+            brickShader.setUniform("uModel", model);
+            // parameters: primitive type, number of vertices, type of indices, ...
+            glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
         }
+
+        // lamp
+        lampTexture.bind();
+        lampShader.use();
+        lampShader.setUniform("uView", view);
+
+        auto lampModel = glm::mat4(1.0f);
+        lampModel = glm::scale(lampModel, {0.5f, 0.5f, 0.5f});
+        lampModel = glm::translate(lampModel, lampPosition);
+        lampShader.setUniform("uModel", lampModel);
+
+        // use same VAO as before (cube)
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
 
         window.swapBuffers();
         ph::Window::pollEvents();
@@ -384,7 +433,6 @@ int main() {
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
 
     return EXIT_SUCCESS;
 }
