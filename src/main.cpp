@@ -76,6 +76,44 @@ namespace ph {
             glfwSwapBuffers(window);
         }
     };
+    class Texture {
+    public:
+        GLuint id{0};
+
+        explicit Texture(const std::string &imagePath) {
+            // parameters: # of textures, id
+            glGenTextures(1, &id);
+            glBindTexture(GL_TEXTURE_2D, id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            int width, height, numChannels;
+            stbi_set_flip_vertically_on_load(true);
+            stbi_uc* data = stbi_load(imagePath.c_str(), &width, &height, &numChannels, 0);
+            if (!data)
+                std::cout << "Error: Failed to load image at " << imagePath << "!\n";
+            const auto format = (numChannels == 4) ? GL_RGBA : GL_RGB;
+            glTexImage2D(
+                GL_TEXTURE_2D,      // texture target
+                0,                  // mipmap level
+                format,             // texture data format
+                width,              // width of image (px)
+                height,             // height of image (px)
+                0,                  // legacy stuff
+                format,             // image data interpretation
+                GL_UNSIGNED_BYTE,   // image data format
+                data
+            );
+            glGenerateMipmap(GL_TEXTURE_2D);
+            stbi_image_free(data);
+        }
+
+        void bind() const {
+            glBindTexture(GL_TEXTURE_2D, id);
+        }
+    };
     class Shader {
     public:
         const GLuint program = glCreateProgram();
@@ -148,6 +186,10 @@ namespace ph {
             glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
         }
 
+        void setUniform(const std::string &name, const glm::vec3 &value) const {
+            glUniform3f(glGetUniformLocation(program, name.c_str()), value.x, value.y, value.z);
+        }
+
         static Shader loadFromFile(const std::string &vertexShaderPath, const std::string &fragmentShaderPath) {
             std::stringstream vBuffer, fBuffer;
             std::ifstream file;
@@ -186,40 +228,7 @@ int main() {
     constexpr int HEIGHT = 720;
     const ph::Window window{WIDTH, HEIGHT};
 
-    const ph::Shader shader = ph::Shader::loadFromFile(
-        "resources/shaders/shader.vert", "resources/shaders/shader.frag");
-
-    // TEXTURE DATA
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    int width, height, numChannels;
-    stbi_set_flip_vertically_on_load(true);
-    stbi_uc* data = stbi_load("resources/textures/test.jpg", &width, &height, &numChannels, 0);
-    if (!data) {
-        std::cout << "Error: Failed to load image!" << std::endl;
-    }
-    const auto format = (numChannels == 4) ? GL_RGBA : GL_RGB;
-    glTexImage2D(
-        GL_TEXTURE_2D,      // texture target
-        0,                  // mipmap level
-        format,             // texture data format
-        width,
-        height,
-        0,                  // legacy stuff
-        format,             // image data interpretation
-        GL_UNSIGNED_BYTE,   // image data format
-        data
-    );
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-
-    // ELEMENT VERTEX DATA
+    // GEOMETRY/VERTEX DATA
     // send vertex data to GPU
     constexpr float vertices[] = {
         // positions            // colors           // texCoords
@@ -267,11 +276,31 @@ int main() {
     // texture attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    // set which texture unit to use in the shader
+
+
+    // TEXTURE DATA (brick cube)
+    ph::Texture brick{"resources/textures/test.jpg"};
+    ph::Texture lamp{"resources/textures/lamp.png"};
+
+    // SHADERS
+    // brick shader
+    const ph::Shader shader = ph::Shader::loadFromFile(
+    "resources/shaders/basic.vert", "resources/shaders/basic.frag");
     shader.use();
+    // set which texture unit to use in the shader
+    shader.setUniform("uTexture", 0);
+    shader.setUniform("uLightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+
+    // lighting object (lamp) shader
+    const ph::Shader lampShader = ph::Shader::loadFromFile(
+        "resources/shaders/basic.vert", "resources/shaders/light.frag");
+
+    // glBindTexture(GL_TEXTURE_2D, brickTexture);
+    brick.bind();
+    lampShader.use();
     shader.setUniform("uTexture", 0);
 
-    // TRANSFORMATION STUFF
+    // TRANSFORMATION DATA
     // camera
     constexpr float h = 5.0f;
     constexpr float r = 5.0f;
@@ -309,16 +338,16 @@ int main() {
         lastFrame = currentFrame;
 
         if (window.isKeyPressed(GLFW_KEY_W))
-            camera.position += cameraSpeed * deltaTime * yHat;
-        else if (window.isKeyPressed(GLFW_KEY_S))
-            camera.position -= cameraSpeed * deltaTime * yHat;
-        else if (window.isKeyPressed(GLFW_KEY_A))
             camera.position += cameraSpeed * deltaTime * xHat;
-        else if (window.isKeyPressed(GLFW_KEY_D))
+        if (window.isKeyPressed(GLFW_KEY_S))
             camera.position -= cameraSpeed * deltaTime * xHat;
+        if (window.isKeyPressed(GLFW_KEY_A))
+            camera.position += cameraSpeed * deltaTime * yHat;
+        if (window.isKeyPressed(GLFW_KEY_D))
+            camera.position -= cameraSpeed * deltaTime * yHat;
 
         // RENDER
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // The data flow for rendering is as follows:
@@ -327,8 +356,7 @@ int main() {
         //  3)  Bind the vertex array object (i.e. pass the vertex data
         //      to the GPU)
         //  4)  Draw the object to the screen.
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        brick.bind();
         shader.use();
 
         glBindVertexArray(VAO);
