@@ -13,6 +13,26 @@
 #include "stb_image.h"
 
 namespace ph {
+    enum class Key {
+        Escape, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+
+        Grave, One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Zero, Minus, Equal, Backspace,
+        Tab, Q, W, E, R, T, Y, U, I, O, P, LeftBracket, RightBracket, Backslash,
+        CapsLock, A, S, D, F, G, H, J, K, L, Semicolon, Apostrophe, Enter,
+        LeftShift, Z, X, C, V, B, N, M, Comma, Period, Slash, RightShift,
+        LeftCtrl, LeftSuper, LeftAlt, Space, RightAlt, RightSuper, Menu, RightCtrl,
+
+        Insert, Delete, Home, End, PageUp, PageDown,
+        PrintScreen, ScrollLock, Pause,
+
+        Up, Down, Left, Right,
+
+        NumLock, NumpadDivide, NumpadMultiply, NumpadSubtract,
+        Numpad7, Numpad8, Numpad9, NumpadAdd,
+        Numpad4, Numpad5, Numpad6,
+        Numpad1, Numpad2, Numpad3, NumpadEnter,
+        Numpad0, NumpadDecimal
+    };
     class Window {
         GLFWwindow* window;
 
@@ -63,8 +83,128 @@ namespace ph {
             glfwSetWindowShouldClose(window, val);
         }
 
-        bool isKeyPressed(const int key) const {
-            return glfwGetKey(window, key) == GLFW_PRESS;
+        bool isKeyPressed(const Key key) const {
+            int glfwKey;
+            switch (key) {
+                case Key::Escape:       glfwKey = GLFW_KEY_ESCAPE; break;
+                case Key::F1:           glfwKey = GLFW_KEY_F1; break;
+                case Key::F2:           glfwKey = GLFW_KEY_F2; break;
+                case Key::F3:           glfwKey = GLFW_KEY_F3; break;
+                case Key::F4:           glfwKey = GLFW_KEY_F4; break;
+                case Key::F5:           glfwKey = GLFW_KEY_F5; break;
+                case Key::F6:           glfwKey = GLFW_KEY_F6; break;
+                case Key::F7:           glfwKey = GLFW_KEY_F7; break;
+                case Key::F8:           glfwKey = GLFW_KEY_F8; break;
+                case Key::F9:           glfwKey = GLFW_KEY_F9; break;
+                case Key::F10:          glfwKey = GLFW_KEY_F10; break;
+                case Key::F11:          glfwKey = GLFW_KEY_F11; break;
+                case Key::F12:          glfwKey = GLFW_KEY_F12; break;
+
+                case Key::Grave:        glfwKey = GLFW_KEY_GRAVE_ACCENT; break;
+                case Key::One:          glfwKey = GLFW_KEY_1; break;
+                case Key::Two:          glfwKey = GLFW_KEY_2; break;
+                case Key::Three:        glfwKey = GLFW_KEY_3; break;
+                case Key::Four:         glfwKey = GLFW_KEY_4; break;
+                case Key::Five:         glfwKey = GLFW_KEY_5; break;
+                case Key::Six:          glfwKey = GLFW_KEY_6; break;
+                case Key::Seven:        glfwKey = GLFW_KEY_7; break;
+                case Key::Eight:        glfwKey = GLFW_KEY_8; break;
+                case Key::Nine:         glfwKey = GLFW_KEY_9; break;
+                case Key::Zero:         glfwKey = GLFW_KEY_0; break;
+                case Key::Minus:        glfwKey = GLFW_KEY_MINUS; break;
+                case Key::Equal:        glfwKey = GLFW_KEY_EQUAL; break;
+                case Key::Backspace:    glfwKey = GLFW_KEY_BACKSPACE; break;
+
+                case Key::Tab:          glfwKey = GLFW_KEY_TAB; break;
+                case Key::Q:            glfwKey = GLFW_KEY_Q; break;
+                case Key::W:            glfwKey = GLFW_KEY_W; break;
+                case Key::E:            glfwKey = GLFW_KEY_E; break;
+                case Key::R:            glfwKey = GLFW_KEY_R; break;
+                case Key::T:            glfwKey = GLFW_KEY_T; break;
+                case Key::Y:            glfwKey = GLFW_KEY_Y; break;
+                case Key::U:            glfwKey = GLFW_KEY_U; break;
+                case Key::I:            glfwKey = GLFW_KEY_I; break;
+                case Key::O:            glfwKey = GLFW_KEY_O; break;
+                case Key::P:            glfwKey = GLFW_KEY_P; break;
+                case Key::LeftBracket:  glfwKey = GLFW_KEY_LEFT_BRACKET; break;
+                case Key::RightBracket: glfwKey = GLFW_KEY_RIGHT_BRACKET; break;
+                case Key::Backslash:    glfwKey = GLFW_KEY_BACKSLASH; break;
+
+                case Key::CapsLock:     glfwKey = GLFW_KEY_CAPS_LOCK; break;
+                case Key::A:            glfwKey = GLFW_KEY_A; break;
+                case Key::S:            glfwKey = GLFW_KEY_S; break;
+                case Key::D:            glfwKey = GLFW_KEY_D; break;
+                case Key::F:            glfwKey = GLFW_KEY_F; break;
+                case Key::G:            glfwKey = GLFW_KEY_G; break;
+                case Key::H:            glfwKey = GLFW_KEY_H; break;
+                case Key::J:            glfwKey = GLFW_KEY_J; break;
+                case Key::K:            glfwKey = GLFW_KEY_K; break;
+                case Key::L:            glfwKey = GLFW_KEY_L; break;
+                case Key::Semicolon:    glfwKey = GLFW_KEY_SEMICOLON; break;
+                case Key::Apostrophe:   glfwKey = GLFW_KEY_APOSTROPHE; break;
+                case Key::Enter:        glfwKey = GLFW_KEY_ENTER; break;
+
+                case Key::LeftShift:    glfwKey = GLFW_KEY_LEFT_SHIFT; break;
+                case Key::Z:            glfwKey = GLFW_KEY_Z; break;
+                case Key::X:            glfwKey = GLFW_KEY_X; break;
+                case Key::C:            glfwKey = GLFW_KEY_C; break;
+                case Key::V:            glfwKey = GLFW_KEY_V; break;
+                case Key::B:            glfwKey = GLFW_KEY_B; break;
+                case Key::N:            glfwKey = GLFW_KEY_N; break;
+                case Key::M:            glfwKey = GLFW_KEY_M; break;
+                case Key::Comma:        glfwKey = GLFW_KEY_COMMA; break;
+                case Key::Period:       glfwKey = GLFW_KEY_PERIOD; break;
+                case Key::Slash:        glfwKey = GLFW_KEY_SLASH; break;
+                case Key::RightShift:   glfwKey = GLFW_KEY_RIGHT_SHIFT; break;
+
+                case Key::LeftCtrl:     glfwKey = GLFW_KEY_LEFT_CONTROL; break;
+                case Key::LeftSuper:    glfwKey = GLFW_KEY_LEFT_SUPER; break;
+                case Key::LeftAlt:      glfwKey = GLFW_KEY_LEFT_ALT; break;
+                case Key::Space:        glfwKey = GLFW_KEY_SPACE; break;
+                case Key::RightAlt:     glfwKey = GLFW_KEY_RIGHT_ALT; break;
+                case Key::RightSuper:   glfwKey = GLFW_KEY_RIGHT_SUPER; break;
+                case Key::Menu:         glfwKey = GLFW_KEY_MENU; break;
+                case Key::RightCtrl:    glfwKey = GLFW_KEY_RIGHT_CONTROL; break;
+
+                case Key::Insert:       glfwKey = GLFW_KEY_INSERT; break;
+                case Key::Delete:       glfwKey = GLFW_KEY_DELETE; break;
+                case Key::Home:         glfwKey = GLFW_KEY_HOME; break;
+                case Key::End:          glfwKey = GLFW_KEY_END; break;
+                case Key::PageUp:       glfwKey = GLFW_KEY_PAGE_UP; break;
+                case Key::PageDown:     glfwKey = GLFW_KEY_PAGE_DOWN; break;
+
+                case Key::PrintScreen:  glfwKey = GLFW_KEY_PRINT_SCREEN; break;
+                case Key::ScrollLock:   glfwKey = GLFW_KEY_SCROLL_LOCK; break;
+                case Key::Pause:        glfwKey = GLFW_KEY_PAUSE; break;
+
+                case Key::Up:           glfwKey = GLFW_KEY_UP; break;
+                case Key::Down:         glfwKey = GLFW_KEY_DOWN; break;
+                case Key::Left:         glfwKey = GLFW_KEY_LEFT; break;
+                case Key::Right:        glfwKey = GLFW_KEY_RIGHT; break;
+
+                case Key::NumLock:      glfwKey = GLFW_KEY_NUM_LOCK; break;
+                case Key::NumpadDivide: glfwKey = GLFW_KEY_KP_DIVIDE; break;
+                case Key::NumpadMultiply: glfwKey = GLFW_KEY_KP_MULTIPLY; break;
+                case Key::NumpadSubtract: glfwKey = GLFW_KEY_KP_SUBTRACT; break;
+                case Key::Numpad7:      glfwKey = GLFW_KEY_KP_7; break;
+                case Key::Numpad8:      glfwKey = GLFW_KEY_KP_8; break;
+                case Key::Numpad9:      glfwKey = GLFW_KEY_KP_9; break;
+                case Key::NumpadAdd:    glfwKey = GLFW_KEY_KP_ADD; break;
+                case Key::Numpad4:      glfwKey = GLFW_KEY_KP_4; break;
+                case Key::Numpad5:      glfwKey = GLFW_KEY_KP_5; break;
+                case Key::Numpad6:      glfwKey = GLFW_KEY_KP_6; break;
+                case Key::Numpad1:      glfwKey = GLFW_KEY_KP_1; break;
+                case Key::Numpad2:      glfwKey = GLFW_KEY_KP_2; break;
+                case Key::Numpad3:      glfwKey = GLFW_KEY_KP_3; break;
+                case Key::NumpadEnter:  glfwKey = GLFW_KEY_KP_ENTER; break;
+                case Key::Numpad0:      glfwKey = GLFW_KEY_KP_0; break;
+                case Key::NumpadDecimal: glfwKey = GLFW_KEY_KP_DECIMAL; break;
+
+                default:
+                    return false; // Unknown key
+            }
+
+            return glfwGetKey(window, glfwKey) == GLFW_PRESS;
         }
 
         static void pollEvents() {
@@ -146,7 +286,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetShaderInfoLog(vertexShader, 1024, nullptr, infoLog);
-                std::cout << "ph::Error: Failed to compile vertex shader! (" << infoLog << ")\n";
+                std::cout << "Error: Failed to compile vertex shader! (" << infoLog << ")\n";
             }
 
             // CREATE FRAGMENT SHADER
@@ -158,7 +298,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetShaderInfoLog(fragmentShader, 1024, nullptr, infoLog);
-                std::cout << "ph::Error: Failed to compile fragment shader! (" << infoLog << ")\n";
+                std::cout << "Error: Failed to compile fragment shader! (" << infoLog << ")\n";
             }
 
             // CREATE PROGRAM
@@ -170,7 +310,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetProgramInfoLog(id, 1024, nullptr, infoLog);
-                std::cout << "ph::Error: Failed to link shader program! (" << infoLog << ")\n";
+                std::cout << "Error: Failed to link shader program! (" << infoLog << ")\n";
             }
             glValidateProgram(id);
             // check validate status
@@ -178,7 +318,7 @@ namespace ph {
             if (!success) {
                 char infoLog[1024];
                 glGetProgramInfoLog(id, 1024, nullptr, infoLog);
-                std::cout << "ph::Error: Failed to validate shader program! (" << infoLog << ")\n";
+                std::cout << "Error: Failed to validate shader program! (" << infoLog << ")\n";
             }
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
@@ -192,8 +332,12 @@ namespace ph {
             return id;
         }
     };
-    // OpenGL state
     namespace gl {
+        void clear(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 0.0f) {
+            glClearColor(r, g, b, a);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+
         void bind(const Texture &texture) {
             glBindTexture(GL_TEXTURE_2D, texture.getID());
         }
@@ -235,13 +379,14 @@ namespace ph {
             return glm::lookAt(position, target, right);
         };
     };
-
 }
 
 int main() {
+    using namespace ph;
+    
     constexpr int WIDTH = 1280;
     constexpr int HEIGHT = 720;
-    const ph::Window window{WIDTH, HEIGHT};
+    const Window window{WIDTH, HEIGHT};
 
 
     // GEOMETRY/VERTEX DATA
@@ -316,28 +461,28 @@ int main() {
     glEnableVertexAttribArray(2);
 
     // TEXTURE DATA
-    ph::Texture brickTexture{"resources/textures/test.jpg"};
-    ph::Texture lampTexture{"resources/textures/lamp.png"};
+    const Texture brickTexture{"resources/textures/test.jpg"};
+    const Texture lampTexture{"resources/textures/lamp.png"};
 
     // SHADERS
     // brick shader
-    const ph::Shader brickShader{"resources/shaders/basic.vert", "resources/shaders/basic.frag"};
+    const Shader brickShader{"resources/shaders/basic.vert", "resources/shaders/basic.frag"};
 
-    ph::gl::bind(brickShader);
+    gl::bind(brickShader);
     // set which texture unit to use in the shader. You must use the shader program before
     // setting any uniforms in the shader.
-    ph::gl::bind(brickTexture);
-    ph::gl::setUniform(brickShader, "uTexture", 0);
-    ph::gl::setUniform(brickShader, "uLamp.color", glm::vec3(1.0f, 1.0f, 1.0f));
-    ph::gl::setUniform(brickShader, "uLamp.attenuation", glm::vec3(1.0f, 0.0f, 0.0075f));
+    gl::bind(brickTexture);
+    gl::setUniform(brickShader, "uTexture", 0);
+    gl::setUniform(brickShader, "uLamp.color", glm::vec3(1.0f, 1.0f, 1.0f));
+    gl::setUniform(brickShader, "uLamp.attenuation", glm::vec3(1.0f, 0.0f, 0.0075f));
 
     // lighting object (lamp) shader
-    const ph::Shader lampShader{"resources/shaders/basic.vert", "resources/shaders/lamp.frag"};
-    ph::gl::bind(lampShader);
-    ph::gl::bind(lampTexture);
-    ph::gl::setUniform(lampShader, "uTexture", 0);
+    const Shader lampShader{"resources/shaders/basic.vert", "resources/shaders/lamp.frag"};
+    gl::bind(lampShader);
+    gl::bind(lampTexture);
+    gl::setUniform(lampShader, "uTexture", 0);
     const auto M = glm::scale(glm::mat4(1.0f), {0.5f, 0.5f, 0.5f});
-    ph::gl::setUniform(lampShader, "uModel", M);
+    gl::setUniform(lampShader, "uModel", M);
 
 
     // TRANSFORMATION DATA
@@ -345,13 +490,13 @@ int main() {
     constexpr float h = 8.0f;
     const glm::vec3 cameraPos{0.0f, 0.0f, h};
     const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
-    ph::Camera camera{cameraPos, cameraTarget};
+    Camera camera{cameraPos, cameraTarget};
 
     const auto projection = glm::perspective(glm::radians(45.0f), WIDTH/static_cast<float>(HEIGHT), 0.1f, 100.0f);
-    ph::gl::bind(brickShader);
-    ph::gl::setUniform(brickShader, "uProjection", projection);
-    ph::gl::bind(lampShader);
-    ph::gl::setUniform(lampShader, "uProjection", projection);
+    gl::bind(brickShader);
+    gl::setUniform(brickShader, "uProjection", projection);
+    gl::bind(lampShader);
+    gl::setUniform(lampShader, "uProjection", projection);
 
     glm::vec3 positions[] = {
         {0.0f, 3.0f, 2.0f},
@@ -373,7 +518,7 @@ int main() {
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
     while (window.isOpen()) {
-        if (window.isKeyPressed(GLFW_KEY_ESCAPE))
+        if (window.isKeyPressed(Key::Escape))
             window.setShouldClose(true);
 
         // UPDATE
@@ -381,13 +526,13 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        if (window.isKeyPressed(GLFW_KEY_W))
+        if (window.isKeyPressed(Key::W))
             camera.position += cameraSpeed * deltaTime * xHat;
-        if (window.isKeyPressed(GLFW_KEY_S))
+        if (window.isKeyPressed(Key::S))
             camera.position -= cameraSpeed * deltaTime * xHat;
-        if (window.isKeyPressed(GLFW_KEY_A))
+        if (window.isKeyPressed(Key::A))
             camera.position += cameraSpeed * deltaTime * yHat;
-        if (window.isKeyPressed(GLFW_KEY_D))
+        if (window.isKeyPressed(Key::D))
             camera.position -= cameraSpeed * deltaTime * yHat;
 
         constexpr float lampR = 10.0f;
@@ -395,8 +540,7 @@ int main() {
         const glm::vec3 lampPosition{lampR * cos(t), lampR * sin(t), 2.0*cos(5.0*t)};
 
         // RENDER
-        glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        gl::clear(0.0f, 0.05f, 0.1f, 1.0f);
 
         // The data flow for rendering is as follows:
         //  1)  Bind textures
@@ -406,40 +550,40 @@ int main() {
         //  4)  Draw the object to the screen.
 
         // bricks
-        ph::gl::bind(brickTexture);
-        ph::gl::bind(brickShader);
+        gl::bind(brickTexture);
+        gl::bind(brickShader);
         glBindVertexArray(VAO);
 
         const auto theta = static_cast<float>(glfwGetTime());
         const auto view = camera.viewMatrix();
-        ph::gl::setUniform(brickShader, "uView", view);
-        ph::gl::setUniform(brickShader, "uLamp.position", lampPosition);
+        gl::setUniform(brickShader, "uView", view);
+        gl::setUniform(brickShader, "uLamp.position", lampPosition);
 
         for (auto v : positions) {
             auto model = glm::mat4(1.0f);
             // model = glm::rotate(model, theta, glm::normalize(v));
             model = glm::translate(model, v);
 
-            ph::gl::setUniform(brickShader, "uModel", model);
+            gl::setUniform(brickShader, "uModel", model);
             // parameters: primitive type, number of vertices, type of indices, ...
             glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
         }
 
         // lamp
-        ph::gl::bind(lampTexture);
-        ph::gl::bind(lampShader);
-        ph::gl::setUniform(lampShader, "uView", view);
+        gl::bind(lampTexture);
+        gl::bind(lampShader);
+        gl::setUniform(lampShader, "uView", view);
 
         auto lampModel = glm::mat4(1.0f);
         lampModel = glm::scale(lampModel, {0.5f, 0.5f, 0.5f});
         lampModel = glm::translate(lampModel, lampPosition);
-        ph::gl::setUniform(lampShader, "uModel", lampModel);
+        gl::setUniform(lampShader, "uModel", lampModel);
 
         // use same VAO as before (cube)
         glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
 
         window.swapBuffers();
-        ph::Window::pollEvents();
+        Window::pollEvents();
     }
 
     glDeleteVertexArrays(1, &VAO);
