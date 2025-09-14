@@ -13,7 +13,7 @@ uniform mat4 uProjection;
 
 void main() {
     gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
-    oFragPosition = vec3(uView * uModel * vec4(aPos, 1.0));     // convert to view space coordinates
+    oFragPosition = vec3(uModel * vec4(aPos, 1.0));             // convert to world space coordinates
     oNormal = normalize(aNormal);                               // normal attribute is not normalized
     oTexCoord = aTexCoord;
 }

@@ -34,7 +34,7 @@ void main() {
     float diffuseStrength = max(dot(oNormal, lightDirection), 0.0);
     vec3 diffuse = diffuseStrength * uLamp.color;
 
-    vec3 color = ambient + attenuation * diffuse;
+    vec3 brightness = ambient + attenuation * diffuse;
 
-    FragColor = vec4(color, 1.0) * texture(uTexture, oTexCoord);
+    FragColor = vec4(brightness, 1.0) * texture(uTexture, oTexCoord);
 }

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <memory>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -13,12 +14,10 @@
 
 namespace ph {
     class Window {
-    public:
         GLFWwindow* window;
-        int width;
-        int height;
 
-        Window(const int width, const int height) : width(width), height(height) {
+    public:
+        Window(const int width, const int height) {
             // load GLFW and create window
             if (!glfwInit()) {
                 std::cerr << "Error: Failed to initialize GLFW!" << std::endl;
@@ -76,10 +75,11 @@ namespace ph {
             glfwSwapBuffers(window);
         }
     };
+
     class Texture {
-    public:
         GLuint id{0};
 
+    public:
         explicit Texture(const std::string &imagePath) {
             // parameters: # of textures, id
             glGenTextures(1, &id);
@@ -89,39 +89,55 @@ namespace ph {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-            int width, height, numChannels;
+            int width = 0, height = 0, numChannels;
             stbi_set_flip_vertically_on_load(true);
-            stbi_uc* data = stbi_load(imagePath.c_str(), &width, &height, &numChannels, 0);
+
+            const stbi_uc* data = stbi_load(imagePath.c_str(), &width, &height, &numChannels, 0);
             if (!data)
                 std::cout << "Error: Failed to load image at " << imagePath << "!\n";
             const auto format = (numChannels == 4) ? GL_RGBA : GL_RGB;
+
             glTexImage2D(
-                GL_TEXTURE_2D,      // texture target
-                0,                  // mipmap level
-                format,             // texture data format
-                width,              // width of image (px)
-                height,             // height of image (px)
-                0,                  // legacy stuff
-                format,             // image data interpretation
-                GL_UNSIGNED_BYTE,   // image data format
+                GL_TEXTURE_2D,              // texture target
+                0,                          // mipmap level
+                format,               // texture data format
+                width,                // width of image (px)
+                height,               // height of image (px)
+                0,                          // legacy stuff
+                format,               // image data interpretation
+                GL_UNSIGNED_BYTE,           // image data format
                 data
             );
             glGenerateMipmap(GL_TEXTURE_2D);
-            stbi_image_free(data);
         }
 
-        void bind() const {
-            glBindTexture(GL_TEXTURE_2D, id);
+        ~Texture() {
+            glDeleteTextures(1, &id);
+        }
+
+        GLuint getID() const {
+            return id;
         }
     };
     class Shader {
+        const GLuint id = glCreateProgram();
+
     public:
-        const GLuint program = glCreateProgram();
-        Shader(const std::string &vertexShaderSource, const std::string &fragmentShaderSource) {
+        Shader(const std::string &vertexShaderPath, const std::string &fragmentShaderPath) {
+            // LOAD SHADER SOURCES
+            std::stringstream vBuffer, fBuffer;
+            std::ifstream file;
+            file.open(vertexShaderPath);
+            vBuffer << file.rdbuf();
+            file.close();
+            file.open(fragmentShaderPath);
+            fBuffer << file.rdbuf();
+            file.close();
+            const std::string vs_str = vBuffer.str(), fs_str = fBuffer.str();
+            const char* vs_cstr = vs_str.c_str(), *fs_cstr = fs_str.c_str();
 
             // CREATE VERTEX SHADER
             const GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-            const char* vs_cstr = vertexShaderSource.c_str();
             glShaderSource(vertexShader, 1, &vs_cstr, nullptr);
             glCompileShader(vertexShader);
             // check compilation success
@@ -135,7 +151,6 @@ namespace ph {
 
             // CREATE FRAGMENT SHADER
             const GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-            const char* fs_cstr = fragmentShaderSource.c_str();
             glShaderSource(fragmentShader, 1, &fs_cstr, nullptr);
             glCompileShader(fragmentShader);
             // check compilation status
@@ -147,22 +162,22 @@ namespace ph {
             }
 
             // CREATE PROGRAM
-            glAttachShader(program, vertexShader);
-            glAttachShader(program, fragmentShader);
-            glLinkProgram(program);
+            glAttachShader(id, vertexShader);
+            glAttachShader(id, fragmentShader);
+            glLinkProgram(id);
             // check link success
-            glGetProgramiv(program, GL_LINK_STATUS, &success);
+            glGetProgramiv(id, GL_LINK_STATUS, &success);
             if (!success) {
                 char infoLog[1024];
-                glGetProgramInfoLog(program, 1024, nullptr, infoLog);
+                glGetProgramInfoLog(id, 1024, nullptr, infoLog);
                 std::cout << "ph::Error: Failed to link shader program! (" << infoLog << ")\n";
             }
-            glValidateProgram(program);
+            glValidateProgram(id);
             // check validate status
-            glGetProgramiv(program, GL_VALIDATE_STATUS, &success);
+            glGetProgramiv(id, GL_VALIDATE_STATUS, &success);
             if (!success) {
                 char infoLog[1024];
-                glGetProgramInfoLog(program, 1024, nullptr, infoLog);
+                glGetProgramInfoLog(id, 1024, nullptr, infoLog);
                 std::cout << "ph::Error: Failed to validate shader program! (" << infoLog << ")\n";
             }
             glDeleteShader(vertexShader);
@@ -170,38 +185,37 @@ namespace ph {
         }
 
         ~Shader() {
-            glDeleteProgram(program);
+            glDeleteProgram(id);
         }
 
-        void use() const {
-            glUseProgram(program);
+        GLuint getID() const {
+            return id;
+        }
+    };
+    // OpenGL state
+    namespace gl {
+        void bind(const Texture &texture) {
+            glBindTexture(GL_TEXTURE_2D, texture.getID());
         }
 
-        void setUniform(const std::string &name, const int value) const {
-            glUniform1i(glGetUniformLocation(program, name.c_str()), value);
+        void bind(const Shader &shader) {
+            glUseProgram(shader.getID());
         }
 
-        void setUniform(const std::string &name, const glm::mat4 &value) const {
-            const GLint location = glGetUniformLocation(program, name.c_str());
+        void setUniform(const Shader& shader, const std::string &name, const int value) {
+            glUniform1i(glGetUniformLocation(shader.getID(), name.c_str()), value);
+        }
+
+        void setUniform(const Shader& shader, const std::string &name, const glm::mat4 &value) {
+            const GLint location = glGetUniformLocation(shader.getID(), name.c_str());
             glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
         }
 
-        void setUniform(const std::string &name, const glm::vec3 &value) const {
-            glUniform3f(glGetUniformLocation(program, name.c_str()), value.x, value.y, value.z);
+        void setUniform(const Shader& shader, const std::string &name, const glm::vec3 &value) {
+            glUniform3f(glGetUniformLocation(shader.getID(), name.c_str()), value.x, value.y, value.z);
         }
+    }
 
-        static Shader loadFromFile(const std::string &vertexShaderPath, const std::string &fragmentShaderPath) {
-            std::stringstream vBuffer, fBuffer;
-            std::ifstream file;
-            file.open(vertexShaderPath);
-            vBuffer << file.rdbuf();
-            file.close();
-            file.open(fragmentShaderPath);
-            fBuffer << file.rdbuf();
-            file.close();
-            return {vBuffer.str(), fBuffer.str()};
-        }
-    };
     class Camera {
     public:
         glm::vec3 position;
@@ -221,6 +235,7 @@ namespace ph {
             return glm::lookAt(position, target, right);
         };
     };
+
 }
 
 int main() {
@@ -234,42 +249,42 @@ int main() {
     // six faces of one cube. The normals are not normalized here.
     constexpr float vertices[] = {
         // positions            // normals              // texCoords
-        -0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  0.0f,    // -z
          0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     1.0f,  0.0f,
          0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     1.0f,  1.0f,
          0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     1.0f,  1.0f,
         -0.5f,  0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  1.0f,
         -0.5f, -0.5f, -0.5f,    0.0f,  0.0f, -1.0f,     0.0f,  0.0f,
 
-        -0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  0.0f,    // +z
          0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     1.0f,  0.0f,
          0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     1.0f,  1.0f,
          0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     1.0f,  1.0f,
         -0.5f,  0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  1.0f,
         -0.5f, -0.5f,  0.5f,    0.0f,  0.0f,  1.0f,     0.0f,  0.0f,
 
-        -0.5f,  0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  0.0f,    // -x
         -0.5f,  0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,     1.0f,  0.0f,
         -0.5f, -0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
         -0.5f, -0.5f, -0.5f,   -1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
         -0.5f, -0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  1.0f,
         -0.5f,  0.5f,  0.5f,   -1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
 
-         0.5f,  0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  0.0f,    // +x
          0.5f,  0.5f, -0.5f,    1.0f,  0.0f,  0.0f,     1.0f,  0.0f,
          0.5f, -0.5f, -0.5f,    1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
          0.5f, -0.5f, -0.5f,    1.0f,  0.0f,  0.0f,     1.0f,  1.0f,
          0.5f, -0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  1.0f,
          0.5f,  0.5f,  0.5f,    1.0f,  0.0f,  0.0f,     0.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  0.0f,    // -y
          0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     1.0f,  0.0f,
          0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,     1.0f,  1.0f,
          0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,     1.0f,  1.0f,
         -0.5f, -0.5f,  0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  1.0f,
         -0.5f, -0.5f, -0.5f,    0.0f, -1.0f,  0.0f,     0.0f,  0.0f,
 
-        -0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  0.0f,    // +y
          0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     1.0f,  0.0f,
          0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,     1.0f,  1.0f,
          0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,     1.0f,  1.0f,
@@ -300,47 +315,43 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-
     // TEXTURE DATA
     ph::Texture brickTexture{"resources/textures/test.jpg"};
     ph::Texture lampTexture{"resources/textures/lamp.png"};
 
-
     // SHADERS
     // brick shader
-    const ph::Shader brickShader = ph::Shader::loadFromFile(
-    "resources/shaders/basic.vert", "resources/shaders/basic.frag");
-    brickShader.use();
+    const ph::Shader brickShader{"resources/shaders/basic.vert", "resources/shaders/basic.frag"};
+
+    ph::gl::bind(brickShader);
     // set which texture unit to use in the shader. You must use the shader program before
     // setting any uniforms in the shader.
-    brickTexture.bind();
-    brickShader.setUniform("uTexture", 0);
-
-    brickShader.setUniform("uLamp.color", glm::vec3(1.0f, 1.0f, 1.0f));
-    brickShader.setUniform("uLamp.attenuation", glm::vec3(1.0f, 0.045f, 0.0075f));
+    ph::gl::bind(brickTexture);
+    ph::gl::setUniform(brickShader, "uTexture", 0);
+    ph::gl::setUniform(brickShader, "uLamp.color", glm::vec3(1.0f, 1.0f, 1.0f));
+    ph::gl::setUniform(brickShader, "uLamp.attenuation", glm::vec3(1.0f, 0.0f, 0.0075f));
 
     // lighting object (lamp) shader
-    const ph::Shader lampShader = ph::Shader::loadFromFile(
-        "resources/shaders/basic.vert", "resources/shaders/lamp.frag");
-    lampShader.use();
-    lampTexture.bind();
-    lampShader.setUniform("uTexture", 0);
-    lampShader.setUniform("uModel", glm::scale(glm::mat4(1.0f), {0.5f, 0.5f, 0.5f}));
+    const ph::Shader lampShader{"resources/shaders/basic.vert", "resources/shaders/lamp.frag"};
+    ph::gl::bind(lampShader);
+    ph::gl::bind(lampTexture);
+    ph::gl::setUniform(lampShader, "uTexture", 0);
+    const auto M = glm::scale(glm::mat4(1.0f), {0.5f, 0.5f, 0.5f});
+    ph::gl::setUniform(lampShader, "uModel", M);
 
 
     // TRANSFORMATION DATA
     // camera
-    constexpr float h = 10.0f;
-    constexpr float r = 5.0f;
-    const glm::vec3 cameraPos{r, 0.0f, h};
+    constexpr float h = 8.0f;
+    const glm::vec3 cameraPos{0.0f, 0.0f, h};
     const glm::vec3 cameraTarget{0.0f, 0.0f, 0.0f};
     ph::Camera camera{cameraPos, cameraTarget};
 
     const auto projection = glm::perspective(glm::radians(45.0f), WIDTH/static_cast<float>(HEIGHT), 0.1f, 100.0f);
-    brickShader.use();
-    brickShader.setUniform("uProjection", projection);
-    lampShader.use();
-    lampShader.setUniform("uProjection", projection);
+    ph::gl::bind(brickShader);
+    ph::gl::setUniform(brickShader, "uProjection", projection);
+    ph::gl::bind(lampShader);
+    ph::gl::setUniform(lampShader, "uProjection", projection);
 
     glm::vec3 positions[] = {
         {0.0f, 3.0f, 2.0f},
@@ -384,7 +395,7 @@ int main() {
         const glm::vec3 lampPosition{lampR * cos(t), lampR * sin(t), 2.0*cos(5.0*t)};
 
         // RENDER
-        glClearColor(0.0f, 0.02f, 0.05f, 1.0f);
+        glClearColor(0.0f, 0.05f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // The data flow for rendering is as follows:
@@ -395,34 +406,34 @@ int main() {
         //  4)  Draw the object to the screen.
 
         // bricks
-        brickTexture.bind();
-        brickShader.use();
+        ph::gl::bind(brickTexture);
+        ph::gl::bind(brickShader);
         glBindVertexArray(VAO);
 
         const auto theta = static_cast<float>(glfwGetTime());
         const auto view = camera.viewMatrix();
-        brickShader.setUniform("uView", view);
-        brickShader.setUniform("uLamp.position", lampPosition);
+        ph::gl::setUniform(brickShader, "uView", view);
+        ph::gl::setUniform(brickShader, "uLamp.position", lampPosition);
 
         for (auto v : positions) {
             auto model = glm::mat4(1.0f);
             // model = glm::rotate(model, theta, glm::normalize(v));
             model = glm::translate(model, v);
 
-            brickShader.setUniform("uModel", model);
+            ph::gl::setUniform(brickShader, "uModel", model);
             // parameters: primitive type, number of vertices, type of indices, ...
             glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
         }
 
         // lamp
-        lampTexture.bind();
-        lampShader.use();
-        lampShader.setUniform("uView", view);
+        ph::gl::bind(lampTexture);
+        ph::gl::bind(lampShader);
+        ph::gl::setUniform(lampShader, "uView", view);
 
         auto lampModel = glm::mat4(1.0f);
         lampModel = glm::scale(lampModel, {0.5f, 0.5f, 0.5f});
         lampModel = glm::translate(lampModel, lampPosition);
-        lampShader.setUniform("uModel", lampModel);
+        ph::gl::setUniform(lampShader, "uModel", lampModel);
 
         // use same VAO as before (cube)
         glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
