@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cmath>
 #include <memory>
+#include <vector>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -332,6 +333,53 @@ namespace ph {
             return id;
         }
     };
+    // Vertex array objects remember the precise binding and unbinding order
+    // of the vertex buffer and element buffer objects. It then suffices to
+    // bind the vertex array object when making render calls, instead of binding
+    // each buffer and specifying the attribute pointers.
+    //
+    // For now, we only store floats in our vertex data
+    class VertexArray {
+        GLuint id{0};
+        GLuint vbo_id{0};   // todo: multiple vertex buffers
+        size_t count{0};
+
+    public:
+        VertexArray(const float* vertices, const size_t count, const std::vector<int> &attributeSizes) : count(count) {
+            glGenVertexArrays(1, &id);
+            glGenBuffers(1, &vbo_id);
+
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_id);
+            glBufferData(GL_ARRAY_BUFFER, count * sizeof(float), vertices, GL_STATIC_DRAW);
+
+            glBindVertexArray(id);
+
+            int stride = 0;
+            for (const auto s : attributeSizes) {
+                stride += s * sizeof(float);
+            }
+            size_t offset = 0;
+            for (size_t i = 0; i < attributeSizes.size(); i++) {
+                // parameters: which attribute, size of vertex attribute, data type, normalize?, stride, offset (void*).
+                glVertexAttribPointer(i, attributeSizes[i], GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offset));
+                glEnableVertexAttribArray(i);
+                offset += attributeSizes[i] * sizeof(float);
+            }
+        }
+
+        ~VertexArray() {
+            glDeleteVertexArrays(1, &id);
+            glDeleteBuffers(1, &vbo_id);
+        }
+
+        GLuint getID() const {
+            return id;
+        }
+
+        size_t getCount() const {
+            return count;
+        }
+    };
     namespace gl {
         void clear(float r = 0.0f, float g = 0.0f, float b = 0.0f, float a = 0.0f) {
             glClearColor(r, g, b, a);
@@ -346,6 +394,10 @@ namespace ph {
             glUseProgram(shader.getID());
         }
 
+        void bind(const VertexArray &vertexArray) {
+            glBindVertexArray(vertexArray.getID());
+        }
+
         void setUniform(const Shader& shader, const std::string &name, const int value) {
             glUniform1i(glGetUniformLocation(shader.getID(), name.c_str()), value);
         }
@@ -357,6 +409,10 @@ namespace ph {
 
         void setUniform(const Shader& shader, const std::string &name, const glm::vec3 &value) {
             glUniform3f(glGetUniformLocation(shader.getID(), name.c_str()), value.x, value.y, value.z);
+        }
+
+        void draw(const VertexArray &vertexArray) {
+            glDrawArrays(GL_TRIANGLES, 0, vertexArray.getCount());
         }
     }
 
@@ -436,29 +492,7 @@ int main() {
         -0.5f,  0.5f,  0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  1.0f,
         -0.5f,  0.5f, -0.5f,    0.0f,  1.0f,  0.0f,     0.0f,  0.0f,
     };
-
-    // Vertex array objects remember the precise binding and unbinding order
-    // of the vertex buffer and element buffer objects. It then suffices to
-    // bind the vertex array object when making render calls, instead of binding
-    // each buffer and specifying the attribute pointers.
-    GLuint VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindVertexArray(VAO);
-    // position attribute
-    // parameters: which attribute, size of vertex attribute, data type, normalize?, stride, offset (void*).
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    // texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    const VertexArray cubeArray{vertices, sizeof(vertices)/sizeof(float), {3, 3, 2}};
 
     // TEXTURE DATA
     const Texture brickTexture{"resources/textures/test.jpg"};
@@ -552,7 +586,7 @@ int main() {
         // bricks
         gl::bind(brickTexture);
         gl::bind(brickShader);
-        glBindVertexArray(VAO);
+        gl::bind(cubeArray);
 
         const auto theta = static_cast<float>(glfwGetTime());
         const auto view = camera.viewMatrix();
@@ -565,8 +599,7 @@ int main() {
             model = glm::translate(model, v);
 
             gl::setUniform(brickShader, "uModel", model);
-            // parameters: primitive type, number of vertices, type of indices, ...
-            glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
+            gl::draw(cubeArray);
         }
 
         // lamp
@@ -580,14 +613,10 @@ int main() {
         gl::setUniform(lampShader, "uModel", lampModel);
 
         // use same VAO as before (cube)
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));
+        gl::draw(cubeArray);
 
         window.swapBuffers();
         Window::pollEvents();
     }
-
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-
     return EXIT_SUCCESS;
 }
