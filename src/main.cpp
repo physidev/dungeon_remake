@@ -245,9 +245,9 @@ int main() {
             camera.position += cameraSpeed * deltaTime * yHat;
         if (window.isKeyPressed(input::Key::S))
             camera.position -= cameraSpeed * deltaTime * yHat;
-        if (window.isKeyPressed(input::Key::A))
-            camera.position += cameraSpeed * deltaTime * xHat;
         if (window.isKeyPressed(input::Key::D))
+            camera.position += cameraSpeed * deltaTime * xHat;
+        if (window.isKeyPressed(input::Key::A))
             camera.position -= cameraSpeed * deltaTime * xHat;
         if (window.isKeyPressed(input::Key::Space))
             camera.position += cameraSpeed * deltaTime * zHat;

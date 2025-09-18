@@ -399,7 +399,7 @@ GLuint ph::Texture::getID() const {
 }
 
 
-// class ph::VertexArray {
+// class ph::VertexArray
 ph::VertexArray::VertexArray(const float* vertices, const size_t count, const std::vector<int>& attributeSizes) : count(
     count) {
     glGenVertexArrays(1, &id);
@@ -439,38 +439,31 @@ void ph::gl::clear(float r, float g, float b, float a) {
     glClearColor(r, g, b, a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
-void ph::gl::bind(const ph::Texture& texture) {
+void ph::gl::bind(const Texture& texture) {
     glBindTexture(GL_TEXTURE_2D, texture.getID());
 }
-void ph::gl::bind(const ph::Shader& shader) {
+void ph::gl::bind(const Shader& shader) {
     glUseProgram(shader.getID());
 }
-void ph::gl::bind(const ph::VertexArray& vertexArray) {
+void ph::gl::bind(const VertexArray& vertexArray) {
     glBindVertexArray(vertexArray.getID());
 }
-void ph::gl::setUniform(const ph::Shader& shader, const std::string& name, const int value) {
+void ph::gl::setUniform(const Shader& shader, const std::string& name, const int value) {
     glUniform1i(glGetUniformLocation(shader.getID(), name.c_str()), value);
 }
-void ph::gl::setUniform(const ph::Shader& shader, const std::string& name, const glm::mat4& value) {
+void ph::gl::setUniform(const Shader& shader, const std::string& name, const glm::mat4& value) {
     const GLint location = glGetUniformLocation(shader.getID(), name.c_str());
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 }
-void ph::gl::setUniform(const ph::Shader& shader, const std::string& name, const glm::vec3& value) {
+void ph::gl::setUniform(const Shader& shader, const std::string& name, const glm::vec3& value) {
     glUniform3f(glGetUniformLocation(shader.getID(), name.c_str()), value.x, value.y, value.z);
 }
-void ph::gl::draw(const ph::VertexArray& vertexArray) {
+void ph::gl::draw(const VertexArray& vertexArray) {
     glDrawArrays(GL_TRIANGLES, 0, vertexArray.getCount());
 }
 
 // class ph::Camera
 ph::Camera::Camera(const glm::vec3& position, const glm::vec3& target) : position(position), target(target) {}
 glm::mat4 ph::Camera::viewMatrix() const {
-    const glm::vec3 viewDirection = glm::normalize(position - target);
-    // To obtain a vector pointing in the +x direction, we use the Gram-Schmidt procedure.
-    // In particular, note that -z camera = -z world, so +x = cross(+y, +z)), where +z is
-    // the camera direction.
-    const glm::vec3 right = glm::normalize(glm::cross(up, viewDirection));
-    // glm::lookAt computes the view matrix for a camera, given its (1) position,
-    // (2) target, (3) up vector.
-    return glm::lookAt(position, target, right);
+    return glm::lookAt(position, target, up);
 };
