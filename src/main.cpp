@@ -51,12 +51,12 @@ std::vector<float> getTileTexCoords(const Tile t) {
     };
 
     return {
-        tPos.x+0.0f,        tPos.y+0.0f,
-        tPos.x+tSize.x,     tPos.y+0.0f,
-        tPos.x+tSize.x,     tPos.y+tSize.y,
-        tPos.x+tSize.x,     tPos.y+tSize.y,
-        tPos.x+0.0f,        tPos.y+tSize.y,
-        tPos.x+0.0f,        tPos.y+0.0f,
+        tPos.x+0.0f,      tPos.y+0.0f,
+        tPos.x+tSize.x,   tPos.y+0.0f,
+        tPos.x+tSize.x,   tPos.y+tSize.y,
+        tPos.x+tSize.x,   tPos.y+tSize.y,
+        tPos.x+0.0f,      tPos.y+tSize.y,
+        tPos.x+0.0f,      tPos.y+0.0f,
     };
 }
 
@@ -99,8 +99,8 @@ int main() {
     //  LEVEL MODEL INITIALIZATION
     //-------------------------------
     // LEVEL DATA
-    constexpr int MAP_SIZE_X = 10;
-    constexpr int MAP_SIZE_Y = 10;
+    constexpr int MAP_SIZE_X = 100;
+    constexpr int MAP_SIZE_Y = 100;
     constexpr int NUM_TILES = MAP_SIZE_X * MAP_SIZE_Y;
 
     Tile map[NUM_TILES];
@@ -140,7 +140,7 @@ int main() {
 
     //  LAMP MODEL INITIALIZATION
     //-------------------------------
-    // GEOMETRY/VERTEX DATA
+    // LAMP GEOMETRY DATA
     // Thirty-six vertices forming twelve triangles modeling the
     // six faces of one cube. The normals are not normalized here.
     constexpr float vertices[] = {
@@ -193,6 +193,7 @@ int main() {
     const Shader lampShader{"resources/shaders/basic.vert", "resources/shaders/lamp.frag"};
     //-------------------------------
 
+    // SHADER DATA
     gl::bind(levelShader);
     // set which texture unit to use in the shader. You must bind the shader program before
     // setting any uniforms in the shader.
@@ -226,6 +227,13 @@ int main() {
     const glm::vec3 yHat{0.0f, 1.0f, 0.0f};
     const glm::vec3 zHat{0.0f, 0.0f, 1.0f};
 
+    // PLAYER DATA
+    struct Player {
+        glm::vec3 acceleration{0.0f, 0.0f, 0.0f};
+        glm::vec3 velocity{0.0f, 0.0f, 0.0f};
+        glm::vec3 position{0.0f, 0.0f, 0.0f};
+    } player;
+
     //  GAME LOOP
     //-------------------------------
     float deltaTime = 0.0f;
@@ -240,23 +248,44 @@ int main() {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        constexpr float cameraSpeed = 8.0f;
-        if (window.isKeyPressed(input::Key::W))
-            camera.position += cameraSpeed * deltaTime * yHat;
-        if (window.isKeyPressed(input::Key::S))
-            camera.position -= cameraSpeed * deltaTime * yHat;
-        if (window.isKeyPressed(input::Key::D))
-            camera.position += cameraSpeed * deltaTime * xHat;
-        if (window.isKeyPressed(input::Key::A))
-            camera.position -= cameraSpeed * deltaTime * xHat;
-        if (window.isKeyPressed(input::Key::Space))
-            camera.position += cameraSpeed * deltaTime * zHat;
-        if (window.isKeyPressed(input::Key::LeftShift))
-            camera.position -= cameraSpeed * deltaTime * zHat;
+        // UPDATE PLAYER POSITION
+        // handle input
+        constexpr float maxSpeed{8.0f};
+        constexpr float maxAccel{32.0f};
+        constexpr float friction{16.0f};
+        if (window.isKeyPressed(input::Key::W)) {
+            player.acceleration.y = +maxAccel;
+        } else if (window.isKeyPressed(input::Key::S)) {
+            player.acceleration.y = -maxAccel;
+        } else {
+            player.acceleration.y = -friction * player.velocity.y;
+        }
+        if (window.isKeyPressed(input::Key::D)) {
+            player.acceleration.x = +maxAccel;
+        } else if (window.isKeyPressed(input::Key::A)) {
+            player.acceleration.x = -maxAccel;
+        } else {
+            player.acceleration.x = -friction * player.velocity.x;
+        }
 
-        constexpr auto lampR = 10.0f;
-        const auto t = currentFrame;
-        const glm::vec3 lampPosition{lampR * cos(t), lampR * sin(t), 2.0*cos(5.0*t)};
+        // integrate acceleration
+        player.velocity += deltaTime * player.acceleration;
+        if (glm::length(player.velocity) > maxSpeed) {
+            player.velocity = maxSpeed * glm::normalize(player.velocity);
+        }
+        // integrate velocity
+        player.position += player.velocity * deltaTime;
+
+        // update camera motion
+        constexpr float cameraSpeed = 8.0f;
+        if (window.isKeyPressed(input::Key::Space))
+            camera.position.z += cameraSpeed * deltaTime;
+        if (window.isKeyPressed(input::Key::LeftShift))
+            camera.position.z -= cameraSpeed * deltaTime;
+
+        camera.position = {player.position.x, player.position.y, camera.position.z};
+        camera.target = player.position + 0.1f * player.velocity;
+        const auto lampPosition = glm::vec3{1.0f, 1.0f, 0.25f} * camera.position;
 
         //  RENDER
         //-------------------------------
@@ -288,7 +317,6 @@ int main() {
 
         gl::setUniform(lampShader, "uView", view);
         auto lampModel = glm::mat4(1.0f);
-        lampModel = glm::scale(lampModel, {0.5f, 0.5f, 0.5f});
         lampModel = glm::translate(lampModel, lampPosition);
         gl::setUniform(lampShader, "uModel", lampModel);
 
